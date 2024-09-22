@@ -1,0 +1,72 @@
+import discord
+from discord.ext import commands
+import requests
+from bs4 import BeautifulSoup
+
+# Initialize the bot
+bot = commands.Bot(command_prefix='!')
+
+# Function to fetch gear information
+def fetch_gear_info(url):
+    try:
+        response = requests.get(url)
+        response.raise_for_status()  # Raise an error for bad responses
+        soup = BeautifulSoup(response.text, 'html.parser')
+        # Extract relevant data (this will vary based on the actual HTML structure)
+        gear_data = {}
+        # Example extraction logic (this needs to be customized based on the actual page structure)
+        gear_data['name'] = soup.find('h1').text
+        gear_data['best_parts'] = [part.text for part in soup.find_all('li', class_='best-part')]
+        return gear_data
+    except requests.exceptions.RequestException as e:
+        print(f"Error fetching data from {url}: {e}")
+        return None
+
+# Command to get gear information
+@bot.command(name='gear')
+async def gear(ctx, gear_type: str):
+    urls = {
+        'weapons': 'https://borderlands-archive.fandom.com/wiki/Borderlands_2:Borderlands_2_Wiki',
+        'shields': 'https://borderlands-archive.fandom.com/wiki/Shield',
+        'grenades': 'https://borderlands-archive.fandom.com/wiki/Grenades',
+        'class_mods': 'https://borderlands-archive.fandom.com/wiki/Class_Mod',
+        # Add more URLs as needed
+    }
+    
+    url = urls.get(gear_type.lower())
+    if not url:
+        await ctx.send("Invalid gear type. Please choose from: weapons, shields, grenades, class_mods.")
+        return
+
+    gear_info = fetch_gear_info(url)
+    if gear_info:
+        await ctx.send(f"**{gear_info['name']}**\nBest Parts: {', '.join(gear_info['best_parts'])}")
+    else:
+        await ctx.send("Failed to retrieve gear information. Please try again later.")
+
+# Command to list best builds
+@bot.command(name='builds')
+async def builds(ctx, hunter: str):
+    builds_urls = {
+        'zer0': 'https://borderlands.fandom.com/wiki/Category:Zer0_Builds',
+        'krieg': 'https://borderlands.fandom.com/wiki/Category:Krieg_Builds',
+        'salvador': 'https://borderlands.fandom.com/wiki/Category:Salvador_Builds',
+        'gaige': 'https://borderlands.fandom.com/wiki/Category:Gaige_Builds',
+        'maya': 'https://borderlands.fandom.com/wiki/Category:Maya_Builds',
+        'axton': 'https://borderlands.fandom.com/wiki/Category:Axton_Builds',
+    }
+
+    url = builds_urls.get(hunter.lower())
+    if not url:
+        await ctx.send("Invalid hunter type. Please choose from: zer0, krieg, salvador, gaige, maya, axton.")
+        return
+
+    builds_info = fetch_gear_info(url)
+    if builds_info:
+        await ctx.send(f"Best builds for {hunter.capitalize()}: {', '.join(builds_info['best_parts'])}")
+    else:
+        await ctx.send("Failed to retrieve builds information. Please try again later.")
+
+# Run the bot
+TOKEN = 'YOUR_DISCORD_BOT_TOKEN'
+bot.run(TOKEN)
